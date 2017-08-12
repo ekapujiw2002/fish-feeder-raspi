@@ -44,7 +44,9 @@
 <body>
 	<h2>FISH FEEDER</h2>
 	<button onclick="get_schedule_list();">Refresh</button>
-	<button onclick="reinit_schedule_list();">Reinit Schedule</button><br/><br/>
+	<button onclick="reinit_schedule_list();">Reinit Schedule</button>
+	<button onclick="check_level_feeder();">Check Feeder Level</button>
+	<br/><br/>
 	<table>
 		<thead>
 			<tr>
@@ -212,6 +214,28 @@
 			.fail(
 				function(){
 					alert('Reinit schedule failed!!!');
+				}
+			);
+		}
+		
+		function check_level_feeder(){
+			$.getJSON(
+				'api',
+				{
+					'c':4
+				},
+				function(responx){
+					if(parseInt(responx.error)==0){
+						alert('Check feeder level OK = '+parseInt(responx.level) +'%')
+					}
+					else{
+						alert('Check feeder level failed ('+responx.error+')')
+					}
+				}
+			)
+			.fail(
+				function(){
+					alert('Check feeder level failed!!!');
 				}
 			);
 		}
