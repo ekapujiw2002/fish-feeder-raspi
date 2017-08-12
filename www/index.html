@@ -43,6 +43,8 @@
 </head>
 <body>
 	<h2>FISH FEEDER</h2>
+	<button onclick="get_schedule_list();">Refresh</button>
+	<button onclick="reinit_schedule_list();">Reinit Schedule</button><br/><br/>
 	<table>
 		<thead>
 			<tr>
@@ -67,7 +69,7 @@
 	<script>
 		function gen_berat_select_option(id){
 			var ret = '<select id="sel'+id+'-berat">';
-			for(i=1;i<11;i++){
+			for(i=0;i<11;i++){
 				ret += '<option value="'+(i*0.5)+'">'+(i*0.5)+'</option>';
 			}
 			ret += '</select>';
@@ -110,6 +112,108 @@
 			for(x=1;x<6;x++){
 					$('#tbl-schedule-body').append(add_schedule_table_content(x));
 				}
+		}
+		
+		function update_schedule(idx){
+			var day_on_and_active = $('#cb'+idx+'-senin').prop('checked') +
+				($('#cb'+idx+'-selasa').prop('checked')*2) +
+				($('#cb'+idx+'-rabu').prop('checked')*4) +
+				($('#cb'+idx+'-kamis').prop('checked')*8) +
+				($('#cb'+idx+'-jumat').prop('checked')*16) +
+				($('#cb'+idx+'-sabtu').prop('checked')*32) +
+				($('#cb'+idx+'-minggu').prop('checked')*64) +
+				($('#cb'+idx+'-aktif').prop('checked')*128);
+			var jam_on = $('#sel'+idx+'-jam').val()+':'+$('#sel'+idx+'-menit').val()+':0';
+			var brt = $('#sel'+idx+'-berat').val();
+			
+			$.getJSON(
+				'api',
+				{
+					'c':1,
+					'i':parseInt(idx),
+					'd':parseInt(day_on_and_active),
+					'j':jam_on,
+					'w':parseFloat(brt)
+				},
+				function(responx){
+					if(parseInt(responx.error)==0){
+						alert('Update schedule OK')
+					}
+					else{
+						alert('Update failed ('+responx.error+')')
+					}
+				}
+			)
+			.fail(
+				function(){
+					alert('Update failed!!!');
+				}
+			);
+		}
+		
+		function get_schedule_list(){
+			$.getJSON(
+				'api',
+				{
+					'c':2
+				},
+				function(responx){
+					//console.log(responx);
+					
+					if(parseInt(responx.error)==0){
+						//console.log(responx.data);
+						$.each(
+							responx.data,
+							function(key,value){
+								//console.log(value);
+								$('#cb'+value.id+'-aktif').prop('checked', (value.aktif!=0));
+								$('#cb'+value.id+'-senin').prop('checked', (value.senin!=0));
+								$('#cb'+value.id+'-selasa').prop('checked', (value.selasa!=0));
+								$('#cb'+value.id+'-rabu').prop('checked', (value.rabu!=0));
+								$('#cb'+value.id+'-kamis').prop('checked', (value.kamis!=0));
+								$('#cb'+value.id+'-jumat').prop('checked', (value.jumat!=0));
+								$('#cb'+value.id+'-sabtu').prop('checked', (value.sabtu!=0));
+								$('#cb'+value.id+'-minggu').prop('checked', (value.minggu!=0));
+								$('#sel'+value.id+'-berat').val(parseFloat(value.berat));
+								
+								jm_arr = value.jam.split(':');
+								$('#sel'+value.id+'-jam').val(parseInt(jm_arr[0]));
+								$('#sel'+value.id+'-menit').val(parseInt(jm_arr[1]));
+							}
+						);
+					}
+					else{
+						alert('Got error : '+responx.error);
+					}
+				}
+			)
+			.fail(
+				function(){
+					alert('Get schedule failed!!!');
+				}
+			);
+		}
+		
+		function reinit_schedule_list(){
+			$.getJSON(
+				'api',
+				{
+					'c':3
+				},
+				function(responx){
+					if(parseInt(responx.error)==0){
+						alert('Reinit schedule OK')
+					}
+					else{
+						alert('Reinit schedule failed ('+responx.error+')')
+					}
+				}
+			)
+			.fail(
+				function(){
+					alert('Reinit schedule failed!!!');
+				}
+			);
 		}
 		
 		$(document).ready(
