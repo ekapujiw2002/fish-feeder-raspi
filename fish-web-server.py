@@ -185,8 +185,8 @@ class Feeder(object):
 			self.PWM_SERVO.stop()
 			return True
 		except:
-			return False
 			pass
+			return False
 		
 	# feed 1kg
 	def feed_0_5kg(self, total_feed=0.0):
@@ -196,11 +196,13 @@ class Feeder(object):
 				if total_feed > 0:
 					curr_total = 0.0
 					while curr_total <= total_feed:
-						if self.gp2y_read()[1] > 0:
-							motor_on_off(True)
-							servo_on_off()
+						jarak = self.gp2y_read()[1]
+						tornado.log.app_log.info("Feeder : %.1f\t%.1f\t%.1f" % (curr_total,total_feed,jarak))
+						if jarak > 0:
+							self.motor_on_off(True)
+							self.servo_on_off()
 							time.sleep(2)
-							motor_on_off(False)
+							self.motor_on_off(False)
 							curr_total += 0.5
 							ret = 0
 						else:
@@ -210,10 +212,13 @@ class Feeder(object):
 					ret = 3
 			else:
 				ret = 2
-		except:
+		except Exception as errx:
 			pass
+			tornado.log.app_log.error("Feeder : Error => %s" % (errx))
 			ret = 1
 		
+		self.motor_on_off(False)
+		tornado.log.app_log.info("Feeder : Status %d" % (ret))
 		return ret
 	
 '''
@@ -297,6 +302,7 @@ class WebApiHandler(tornado.web.RequestHandler):
 				self.write({'error': 1})			
 			
 		except:
+			pass
 			self.write({'error': 255})
 			
 		#always flush and finish it
@@ -460,6 +466,7 @@ if __name__ == "__main__":
 				gpio_sts = fish_feeder.gpio_setup()
 				if (gpio_sts[0] == 0):
 					tornado.log.app_log.info('GPIO init OK')
+					#fish_feeder.feed_0_5kg(1)
 				else:
 					tornado.log.app_log.error('GPIO init ERROR : %s' % (gpio_sts[1]))
 				
@@ -475,7 +482,8 @@ if __name__ == "__main__":
 			#except Exception as errx:
 			except:
 				pass
-			#	print(errx)
+				#print(errx)
+				#tornado.log.app_log.error(errx)
 				print('\n')
 				scheduler_feeder.stop()
 				tornado.log.app_log.error('Bye...')
@@ -486,5 +494,6 @@ if __name__ == "__main__":
 				fish_feeder.gpio_cleanup()
 			except:
 				pass
-	except:
+	except Exception as errx:
 		pass
+		print("Error = %s" % errx)
