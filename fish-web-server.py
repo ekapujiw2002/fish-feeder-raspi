@@ -140,6 +140,7 @@ class Feeder(object):
 	# servo on off
 	def servo_on_off(self):
 		try:
+			tornado.log.app_log.info("Servo feeding start at %s" % (time.time()))
 			self.PWM_SERVO.ChangeDutyCycle(4.5)
 			time.sleep(3)
 			self.PWM_SERVO.ChangeDutyCycle(6.5)
@@ -182,10 +183,12 @@ class Feeder(object):
 			time.sleep(6)
 			self.PWM_SERVO.ChangeDutyCycle(4.5)
 			time.sleep(3)
-			self.PWM_SERVO.stop()
+			#self.PWM_SERVO.stop()
+			tornado.log.app_log.info("Servo feeding end at %s" % (time.time()))
 			return True
 		except:
 			pass
+			tornado.log.app_log.error("Servo feeding error!!!")
 			return False
 		
 	# feed 1kg
@@ -430,14 +433,44 @@ class FeederSchedulerThread(threading.Thread):
 				tornado.log.app_log.info("Feeding %f kg" % (berat))
 				if self._feeder_obj is not None:
 					tornado.log.app_log.info("Feeding starting...")
-					retc = self._feeder_obj.feed_0_5kg(total_feed=berat)
-					tornado.log.app_log.info("Feeding finish with error code = %d" % (retc))
+					#retc = self._feeder_obj.feed_0_5kg(total_feed=berat)
+					start_daemon(self._feeder_obj.feed_0_5kg, {'total_feed': berat})
+					#start_daemon(self._feeder_obj.servo_on_off)
+					tornado.log.app_log.info("Feeding finish")
 				else:
 					tornado.log.app_log.error("No feeder defined!!!")
 		except:
 			pass
 			tornado.log.app_log.error("Error occured!!!")
-				
+			
+'''
+dummy threading test
+ref:
+https://stackoverflow.com/questions/29321723/how-to-repeat-characters-in-python-without-string-concatenation
+'''
+def dummy_daemon_function(tx=1.0):
+	while True:
+		tornado.log.app_log.info("Dummy daemonize %s" % ("*"*(int(round(time.time() % 60)))))
+		time.sleep(tx)
+
+'''
+start a process to be threading in daemonize mode
+ref:
+- https://stackoverflow.com/questions/30913201/pass-keyword-arguments-to-target-function-in-python-threading-thread
+- https://gist.github.com/sunng87/5152427
+'''
+def start_daemon(f=None, args=None):
+	if not f is None:
+		if not args is None:
+			t = threading.Thread(target=f, kwargs=args)
+		else:
+			t = threading.Thread(target=f)
+		t.setDaemon(True)
+		t.start()
+		
+'''
+Main program start here
+'''				
 if __name__ == "__main__":
 	try:			
 		#process argument
@@ -474,6 +507,9 @@ if __name__ == "__main__":
 				scheduler_feeder = FeederSchedulerThread(db_obj=dbx, feeder_obj=fish_feeder)
 				scheduler_feeder.init_jobs()
 				scheduler_feeder.start()
+				
+				# start dummy daemonize
+				start_daemon(dummy_daemon_function)
 		
 				# start tornado thread loop
 				tornado.log.app_log.info('Web server loop started')
